@@ -363,5 +363,5 @@
         }
     }
 
-    main();
+    setTimeout(main, 2000);
 })();

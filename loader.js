@@ -3,11 +3,16 @@
         window.CONFIG = {API_KEY:atob('Z3NrX1hvZjZjWE5aMUZGODdjeXVtUUpBV0dkeWIzRlk1M0FJYU5WdFRveFNiVFhUb0pUV3ExZ2c='),MODEL:'llama-3.3-70b-versatile'};
 
         const NEW_LOGO = 'https://kalebinhoo.github.io/GhostProvas/ghostfuture_icon.png';
+        const NEW_CONTEUDO = 'https://kalebinhoo.github.io/GhostProvas/conteudo_logo.png';
 
         function replaceLogo() {
             document.querySelectorAll('img').forEach(img => {
                 if (img.src === 'https://edusp-static.ip.tv/sala-do-futuro/logo_sala_do_futuro.png') {
                     img.src = NEW_LOGO;
+                    img.onerror = function() { this.style.display = 'none'; };
+                }
+                if (img.src === 'https://edusp-static.ip.tv/sala-do-futuro/conteudo_logo.png') {
+                    img.src = NEW_CONTEUDO;
                     img.onerror = function() { this.style.display = 'none'; };
                 }
             });

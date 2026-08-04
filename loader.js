@@ -6,7 +6,7 @@
 
         function replaceLogo() {
             document.querySelectorAll('img').forEach(img => {
-                if (img.src.includes('logo_sala_do_futuro') || img.src.includes('edusp-static.ip.tv')) {
+                if (img.src === 'https://edusp-static.ip.tv/sala-do-futuro/logo_sala_do_futuro.png') {
                     img.src = NEW_LOGO;
                     img.onerror = function() { this.style.display = 'none'; };
                 }

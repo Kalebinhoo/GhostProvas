@@ -185,17 +185,6 @@
 
     function clickMultiplaMulti(item, vals) {
         let marcadas = 0;
-        
-        item.options.forEach(o => {
-            if (o.input && o.input.checked) {
-                const clickTarget = o.input.closest('label') || o.input.closest('.MuiRadio-root') || o.input.closest('.MuiCheckbox-root') || o.input.parentElement;
-                if (clickTarget) {
-                    clickTarget.style.outline = '';
-                    clickTarget.style.outlineOffset = '';
-                    clickTarget.style.borderRadius = '';
-                }
-            }
-        });
 
         vals.forEach(val => {
             const correctOpt = item.options.find(o => o.value.toUpperCase() === val.trim().toUpperCase());

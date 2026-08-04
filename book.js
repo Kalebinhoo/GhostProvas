@@ -137,9 +137,6 @@
                 const clickTarget = input.closest('label') || input.closest('.MuiRadio-root') || input.closest('.MuiCheckbox-root') || input.parentElement;
                 if (clickTarget) {
                     clickTarget.click();
-                    clickTarget.style.outline = '3px solid #4CAF50';
-                    clickTarget.style.outlineOffset = '2px';
-                    clickTarget.style.borderRadius = '4px';
                 }
                 clicked = true;
             }
@@ -182,9 +179,6 @@
         const clickTarget = correctOpt.input.closest('label') || correctOpt.input.closest('.MuiRadio-root') || correctOpt.input.closest('.MuiCheckbox-root') || correctOpt.input.parentElement;
         if (clickTarget) {
             clickTarget.click();
-            clickTarget.style.outline = '3px solid #4CAF50';
-            clickTarget.style.outlineOffset = '2px';
-            clickTarget.style.borderRadius = '4px';
         }
         return true;
     }
@@ -209,9 +203,6 @@
                 const clickTarget = correctOpt.input.closest('label') || correctOpt.input.closest('.MuiRadio-root') || correctOpt.input.closest('.MuiCheckbox-root') || correctOpt.input.parentElement;
                 if (clickTarget) {
                     clickTarget.click();
-                    clickTarget.style.outline = '3px solid #4CAF50';
-                    clickTarget.style.outlineOffset = '2px';
-                    clickTarget.style.borderRadius = '4px';
                 }
                 marcadas++;
             }
@@ -232,9 +223,6 @@
         nativeInputValueSetter.call(textarea, text);
         textarea.dispatchEvent(new Event('input', {bubbles: true}));
         textarea.dispatchEvent(new Event('change', {bubbles: true}));
-        textarea.style.outline = '3px solid #4CAF50';
-        textarea.style.outlineOffset = '2px';
-        textarea.style.borderRadius = '4px';
         textarea.style.height = 'auto';
         textarea.style.height = textarea.scrollHeight + 'px';
         return true;

@@ -46,54 +46,40 @@
     timerEl.style.color = '#ff0';
 
     async function sendToAI(text) {
-        const urls = [
-            'https://api.groq.com/openai/v1/chat/completions',
-            'https://corsproxy.io/?https://api.groq.com/openai/v1/chat/completions',
-            'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.groq.com/openai/v1/chat/completions')
+        const body = JSON.stringify({
+            model: MODEL,
+            messages: [{ role: 'user', content: text }],
+            temperature: 0.2,
+            max_tokens: 2000
+        });
+        const proxies = [
+            url => url,
+            url => 'https://corsproxy.io/?' + encodeURIComponent(url),
+            url => 'https://thingproxy.freeboard.io/fetch/' + url,
+            url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
         ];
+        const api = 'https://api.groq.com/openai/v1/chat/completions';
         let lastError;
-        for (const url of urls) {
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + API_KEY
-                    },
-                    body: JSON.stringify({
-                        model: MODEL,
-                        messages: [{
-                            role: 'user',
-                            content: text
-                        }],
-                        temperature: 0.2,
-                        max_tokens: 2000
-                    })
-                });
-                if (!response.ok) {
-                    const errText = await response.text();
-                    throw new Error('HTTP ' + response.status + ': ' + errText.substring(0, 200));
-                }
-                let rawText = await response.text();
-                let data;
+        for (const proxy of proxies) {
+            for (let retry = 0; retry < 2; retry++) {
                 try {
-                    data = JSON.parse(rawText);
-                } catch(_) {
-                    throw new Error('Resposta não é JSON: ' + rawText.substring(0, 200));
+                    const url = proxy(api);
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
+                        body: body
+                    });
+                    let rawText = await response.text();
+                    let data;
+                    try { data = JSON.parse(rawText); } catch(_) { throw new Error('Non-JSON: ' + rawText.substring(0, 150)); }
+                    if (data.contents) { try { data = JSON.parse(data.contents); } catch(_) {} }
+                    if (data.error) throw new Error(data.error.message || 'API error');
+                    if (data.choices && data.choices[0] && data.choices[0].message) return data.choices[0].message.content;
+                    throw new Error('Unexpected: ' + JSON.stringify(data).substring(0, 150));
+                } catch (e) {
+                    lastError = e;
+                    if (retry === 0) await wait(1000);
                 }
-                if (data.contents) {
-                    try { data = JSON.parse(data.contents); } catch(_) {}
-                }
-                if (data.error) {
-                    throw new Error('API: ' + (data.error.message || JSON.stringify(data.error).substring(0, 200)));
-                }
-                if (data.choices && data.choices[0] && data.choices[0].message) {
-                    return data.choices[0].message.content;
-                }
-                throw new Error('Resposta inesperada: ' + JSON.stringify(data).substring(0, 200));
-            } catch (e) {
-                lastError = e;
-                continue;
             }
         }
         throw lastError;

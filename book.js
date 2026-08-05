@@ -53,33 +53,65 @@
 
     applyDarkMode();
 
-    async function handleTokenDialog() {
-        const tokenInput = document.querySelector('input[placeholder*="token"], input[placeholder*="Token"]');
-        if (!tokenInput) return true;
-
-        const token = prompt('Insira o token da prova:');
-        if (!token) {
-            alert('Token não inserido!');
-            return false;
+    async function generateToken() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const tokenLength = 8;
+        let token = '';
+        for (let i = 0; i < tokenLength; i++) {
+            token += chars.charAt(Math.floor(Math.random() * chars.length));
         }
+        return token;
+    }
 
+    async function tryToken(tokenInput, token) {
         const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-        nativeInputValueSetter.call(tokenInput, token.toUpperCase());
+        nativeInputValueSetter.call(tokenInput, token);
         tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
         tokenInput.dispatchEvent(new Event('change', { bubbles: true }));
 
-        await wait(300);
+        await wait(200);
 
         const buttons = document.querySelectorAll('button');
         for (const btn of buttons) {
             if (btn.textContent.includes('Iniciar') || btn.textContent.includes('iniciar')) {
                 btn.click();
-                await wait(2000);
-                return true;
+                await wait(1500);
+
+                const error = document.querySelector('.MuiAlert-message, .MuiError, [class*="error"], [class*="Error"]');
+                if (!error && !document.querySelector('input[placeholder*="token"]')) {
+                    return true;
+                }
             }
         }
+        return false;
+    }
 
-        alert('Botão "Iniciar a Prova" não encontrado!');
+    async function handleTokenDialog() {
+        const tokenInput = document.querySelector('input[placeholder*="token"], input[placeholder*="Token"]');
+        if (!tokenInput) return true;
+
+        timerEl.textContent = 'Gerando token...';
+        timerEl.style.color = '#ff0';
+
+        for (let attempt = 1; attempt <= 50; attempt++) {
+            const token = await generateToken();
+            timerEl.textContent = 'Tentativa ' + attempt + ': ' + token;
+
+            const success = await tryToken(tokenInput, token);
+            if (success) {
+                timerEl.style.color = '#0f0';
+                timerEl.textContent = 'Token: ' + token;
+                await wait(1000);
+                return true;
+            }
+
+            const stillThere = document.querySelector('input[placeholder*="token"]');
+            if (!stillThere) return true;
+
+            await wait(300);
+        }
+
+        alert('Não foi possível gerar um token válido em 50 tentativas.');
         return false;
     }
 

@@ -54,7 +54,7 @@
     applyDarkMode();
 
     async function generateToken() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const chars = 'ABCDEF';
         const tokenLength = 8;
         let token = '';
         for (let i = 0; i < tokenLength; i++) {

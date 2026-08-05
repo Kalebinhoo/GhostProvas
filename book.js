@@ -4,48 +4,51 @@
     const TIMER_SECONDS = 15;
 
     function applyDarkMode() {
-        const css = `
-            html, body, * {
-                background-color: #1a1a2e !important;
-                color: #e0e0e0 !important;
-            }
-            [style*="background-color: rgb(255, 255, 255)"],
-            [style*="background-color: white"],
-            [style*="background-color:#FFFFFF"],
-            [style*="background-color: #FFFFFF"],
-            [style*="background-color:#F4F5F7"],
-            [style*="background-color: #F4F5F7"],
-            [style*="background: rgb(255, 255, 255)"],
-            [style*="background: white"],
-            [style*="background:#FFFFFF"],
-            [style*="background: #FFFFFF"],
-            [style*="background:#F4F5F7"],
-            [style*="background: #F4F5F7"] {
-                background-color: #1a1a2e !important;
-                background: #1a1a2e !important;
-            }
-            a { color: #e94560 !important; }
-            button, .MuiButton-root {
-                background-color: #0f3460 !important;
-                color: #e0e0e0 !important;
-            }
-            input, textarea, .MuiInputBase-root {
-                background-color: #0f3460 !important;
-                color: #e0e0e0 !important;
-            }
-            img { filter: brightness(0.8) contrast(1.1); }
-        `;
-        const style = document.createElement('style');
-        style.textContent = css;
-        document.head.appendChild(style);
+        const invertColors = () => {
+            document.querySelectorAll('*').forEach(el => {
+                const computed = getComputedStyle(el);
+                const bg = computed.backgroundColor;
+                const color = computed.color;
 
-        document.querySelectorAll('*').forEach(el => {
-            const bg = getComputedStyle(el).backgroundColor;
-            if (bg === 'rgb(255, 255, 255)' || bg === 'rgb(244, 245, 247)' || bg === 'rgba(0, 0, 0, 0)') {
-                el.style.setProperty('background-color', '#1a1a2e', 'important');
-            }
-            el.style.setProperty('color', '#e0e0e0', 'important');
+                if (bg === 'rgb(255, 255, 255)' || bg === 'rgb(244, 245, 247)' || bg === 'rgb(250, 250, 250)' || bg.includes('255, 255, 255')) {
+                    el.style.setProperty('background-color', '#1a1a2e', 'important');
+                    el.style.setProperty('background', '#1a1a2e', 'important');
+                }
+                if (color === 'rgb(0, 0, 0)' || color === 'rgb(33, 33, 33)' || color === 'rgba(0, 0, 0, 0.87)') {
+                    el.style.setProperty('color', '#e0e0e0', 'important');
+                }
+                if (computed.borderColor && (computed.borderColor.includes('255, 255, 255') || computed.borderColor.includes('224, 224, 224'))) {
+                    el.style.setProperty('border-color', '#444', 'important');
+                }
+            });
+
+            document.querySelectorAll('iframe').forEach(iframe => {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    if (iframeDoc) {
+                        iframeDoc.querySelectorAll('*').forEach(el => {
+                            const computed = iframeDoc.defaultView.getComputedStyle(el);
+                            const bg = computed.backgroundColor;
+                            if (bg === 'rgb(255, 255, 255)' || bg === 'rgb(244, 245, 247)') {
+                                el.style.setProperty('background-color', '#1a1a2e', 'important');
+                            }
+                            if (computed.color === 'rgb(0, 0, 0)' || computed.color === 'rgba(0, 0, 0, 0.87)') {
+                                el.style.setProperty('color', '#e0e0e0', 'important');
+                            }
+                        });
+                    }
+                } catch(e) {}
+            });
+        };
+
+        invertColors();
+
+        const observer = new MutationObserver(() => {
+            invertColors();
         });
+        observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+
+        setInterval(invertColors, 500);
     }
 
     applyDarkMode();

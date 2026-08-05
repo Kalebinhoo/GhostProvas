@@ -53,6 +53,36 @@
 
     applyDarkMode();
 
+    async function handleTokenDialog() {
+        const tokenInput = document.querySelector('input[placeholder*="token"], input[placeholder*="Token"]');
+        if (!tokenInput) return true;
+
+        const token = prompt('Insira o token da prova:');
+        if (!token) {
+            alert('Token não inserido!');
+            return false;
+        }
+
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeInputValueSetter.call(tokenInput, token.toUpperCase());
+        tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
+        tokenInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+        await wait(300);
+
+        const buttons = document.querySelectorAll('button');
+        for (const btn of buttons) {
+            if (btn.textContent.includes('Iniciar') || btn.textContent.includes('iniciar')) {
+                btn.click();
+                await wait(2000);
+                return true;
+            }
+        }
+
+        alert('Botão "Iniciar a Prova" não encontrado!');
+        return false;
+    }
+
     function createTimer() {
         const div = document.createElement('div');
         div.id = 'ghostprovas-timer';
@@ -351,6 +381,9 @@
     }
 
     async function processAllQuestions() {
+        const tokenOk = await handleTokenDialog();
+        if (!tokenOk) return;
+
         let totalMarcadas = 0;
         let questaoNum = 1;
 

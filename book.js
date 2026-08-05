@@ -3,6 +3,67 @@
     const MODEL = CONFIG.MODEL;
     const TIMER_SECONDS = 15;
 
+    function applyDarkMode() {
+        const style = document.createElement('style');
+        style.textContent = `
+            * { background-color: inherit !important; }
+            html, body { background-color: #1a1a2e !important; color: #e0e0e0 !important; }
+            div, section, main, article, aside, nav, header, footer, form, fieldset, legend, label,
+            .MuiBox-root, .MuiPaper-root, .MuiCard-root, .MuiDialog-paper, .MuiDrawer-paper,
+            [class*="css-"], [class*="Mui"] {
+                background-color: #16213e !important;
+                color: #e0e0e0 !important;
+                border-color: #333 !important;
+            }
+            .MuiTypography-root, .MuiTypography-body1, .MuiTypography-body2, .MuiTypography-h6,
+            .MuiTypography-h5, .MuiTypography-h4, .MuiTypography-subtitle1, .MuiTypography-subtitle2,
+            h1, h2, h3, h4, h5, h6, p, span, label, td, th {
+                color: #e0e0e0 !important;
+            }
+            .ql-editor, .ql-toolbar, .ql-container {
+                background-color: #0f3460 !important;
+                color: #e0e0e0 !important;
+                border-color: #333 !important;
+            }
+            .MuiButton-root, button {
+                background-color: #0f3460 !important;
+                color: #e0e0e0 !important;
+                border-color: #533483 !important;
+            }
+            .MuiButton-root:hover, button:hover {
+                background-color: #533483 !important;
+            }
+            .MuiInputBase-root, .MuiInput-root, .MuiOutlinedInput-root, input, textarea {
+                background-color: #0f3460 !important;
+                color: #e0e0e0 !important;
+                border-color: #333 !important;
+            }
+            .MuiRadio-root, .MuiCheckbox-root, .MuiFormControlLabel-label {
+                color: #e0e0e0 !important;
+            }
+            .MuiTable-root, .MuiTableHead-root, .MuiTableBody-root, .MuiTableRow-root, .MuiTableCell-root {
+                background-color: #16213e !important;
+                color: #e0e0e0 !important;
+                border-color: #333 !important;
+            }
+            .MuiChip-root, .MuiBadge-root {
+                background-color: #533483 !important;
+                color: #e0e0e0 !important;
+            }
+            .MuiDrawer-paper, .MuiAppBar-root {
+                background-color: #1a1a2e !important;
+            }
+            a { color: #e94560 !important; }
+            ::-webkit-scrollbar { width: 8px; }
+            ::-webkit-scrollbar-track { background: #1a1a2e; }
+            ::-webkit-scrollbar-thumb { background: #533483; border-radius: 4px; }
+            img { filter: brightness(0.8) contrast(1.1); }
+        `;
+        document.head.appendChild(style);
+    }
+
+    applyDarkMode();
+
     function createTimer() {
         const div = document.createElement('div');
         div.id = 'ghostprovas-timer';

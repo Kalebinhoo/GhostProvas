@@ -2,7 +2,7 @@
     if (!window.CONFIG) window.CONFIG = {API_KEY:atob('Z3NrX1hvZjZjWE5aMUZGODdjeXVtUUpBV0dkeWIzRlk1M0FJYU5WdFRveFNiVFhUb0pUV3ExZ2c='),MODEL:'llama-3.3-70b-versatile'};
     const API_KEY = CONFIG.API_KEY;
     const MODEL = CONFIG.MODEL;
-    const TIMER_SECONDS = 15;
+    const TIMER_SECONDS = 20;
 
     const NEW_LOGO = 'https://kalebinhoo.github.io/GhostProvas/ghostfuture_icon.png';
     const NEW_CONTEUDO = 'https://kalebinhoo.github.io/GhostProvas/conteudo_logo.png';
@@ -53,34 +53,31 @@
             max_tokens: 2000
         });
         const api = 'https://api.groq.com/openai/v1/chat/completions';
-        const proxies = [
-            'https://corsproxy.io/?',
-            'https://cors-proxy.htmldriven.com/?url=',
-            'https://api.codetabs.com/v1/proxy?quest='
-        ];
         let lastError;
-        const tryFetch = async (url) => {
-            const r = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
-                body: body
-            });
-            let raw = await r.text();
-            let d;
-            try { d = JSON.parse(raw); } catch(_) { throw new Error('Non-JSON: ' + raw.substring(0, 100)); }
-            if (d.contents) { try { d = JSON.parse(d.contents); } catch(_) {} }
-            if (d.error) throw new Error(d.error.message || 'API error');
-            if (d.choices && d.choices[0] && d.choices[0].message) return d.choices[0].message.content;
-            throw new Error(JSON.stringify(d).substring(0, 100));
-        };
-        for (let i = 0; i < proxies.length; i++) {
-            for (let retry = 0; retry < 3; retry++) {
-                try {
-                    return await tryFetch(proxies[i] + encodeURIComponent(api));
-                } catch (e) {
-                    lastError = e;
-                    await wait(500);
+        for (let retry = 0; retry < 6; retry++) {
+            try {
+                const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(api), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
+                    body: body
+                });
+                if (r.status === 429) {
+                    const waitMs = Math.min(30000, 3000 * Math.pow(2, retry));
+                    timerEl.textContent = 'Aguarde... rate limit (' + Math.round(waitMs/1000) + 's)';
+                    timerEl.style.color = '#f80';
+                    await wait(waitMs);
+                    continue;
                 }
+                let raw = await r.text();
+                let d;
+                try { d = JSON.parse(raw); } catch(_) { throw new Error('Non-JSON: ' + raw.substring(0, 100)); }
+                if (d.contents) { try { d = JSON.parse(d.contents); } catch(_) {} }
+                if (d.error) throw new Error(d.error.message || 'API error');
+                if (d.choices && d.choices[0] && d.choices[0].message) return d.choices[0].message.content;
+                throw new Error(JSON.stringify(d).substring(0, 100));
+            } catch (e) {
+                lastError = e;
+                await wait(2000);
             }
         }
         throw lastError;

@@ -1,7 +1,7 @@
 (async()=>{
     const API_KEY = CONFIG.API_KEY;
     const MODEL = CONFIG.MODEL;
-    const TIMER_MINUTES = 15;
+    const TIMER_SECONDS = 15;
 
     function createTimer() {
         const div = document.createElement('div');
@@ -23,7 +23,7 @@
     }
 
     const timerEl = createTimer();
-    const totalSeconds = TIMER_MINUTES * 60;
+    const totalSeconds = TIMER_SECONDS;
 
     for (let i = 0; i < totalSeconds; i++) {
         updateTimer(timerEl, totalSeconds - i);

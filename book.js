@@ -52,33 +52,34 @@
             temperature: 0.2,
             max_tokens: 2000
         });
-        const proxies = [
-            url => url,
-            url => 'https://corsproxy.io/?' + encodeURIComponent(url),
-            url => 'https://thingproxy.freeboard.io/fetch/' + url,
-            url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
-        ];
         const api = 'https://api.groq.com/openai/v1/chat/completions';
+        const proxies = [
+            'https://corsproxy.io/?',
+            'https://cors-proxy.htmldriven.com/?url=',
+            'https://api.codetabs.com/v1/proxy?quest='
+        ];
         let lastError;
-        for (const proxy of proxies) {
-            for (let retry = 0; retry < 2; retry++) {
+        const tryFetch = async (url) => {
+            const r = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
+                body: body
+            });
+            let raw = await r.text();
+            let d;
+            try { d = JSON.parse(raw); } catch(_) { throw new Error('Non-JSON: ' + raw.substring(0, 100)); }
+            if (d.contents) { try { d = JSON.parse(d.contents); } catch(_) {} }
+            if (d.error) throw new Error(d.error.message || 'API error');
+            if (d.choices && d.choices[0] && d.choices[0].message) return d.choices[0].message.content;
+            throw new Error(JSON.stringify(d).substring(0, 100));
+        };
+        for (let i = 0; i < proxies.length; i++) {
+            for (let retry = 0; retry < 3; retry++) {
                 try {
-                    const url = proxy(api);
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
-                        body: body
-                    });
-                    let rawText = await response.text();
-                    let data;
-                    try { data = JSON.parse(rawText); } catch(_) { throw new Error('Non-JSON: ' + rawText.substring(0, 150)); }
-                    if (data.contents) { try { data = JSON.parse(data.contents); } catch(_) {} }
-                    if (data.error) throw new Error(data.error.message || 'API error');
-                    if (data.choices && data.choices[0] && data.choices[0].message) return data.choices[0].message.content;
-                    throw new Error('Unexpected: ' + JSON.stringify(data).substring(0, 150));
+                    return await tryFetch(proxies[i] + encodeURIComponent(api));
                 } catch (e) {
                     lastError = e;
-                    if (retry === 0) await wait(1000);
+                    await wait(500);
                 }
             }
         }

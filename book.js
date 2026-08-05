@@ -54,6 +54,10 @@
         return data.choices[0].message.content;
     }
 
+    function getCurrentQuestion() {
+        return document.querySelector('[questao]');
+    }
+
     function getSubQuestions(questionEl) {
         const radioGroups = questionEl.querySelectorAll('.MuiRadioGroup-root, .MuiFormGroup-root, [class*="Group"]');
         const groups = [];
@@ -222,90 +226,126 @@
         return true;
     }
 
-    function parseAnswers(aiAnswer, allItems) {
-        const parts = aiAnswer.split('---');
-        const answers = [];
-        allItems.forEach((item, i) => {
-            if (parts[i]) {
-                let resposta = parts[i].trim().replace(/^\d+[\.\-\):]\s*/i, '').trim();
-                answers.push(resposta);
-            } else { answers.push(''); }
-        });
-        return answers;
-    }
-
-    function scrapeAll() {
-        const questions = document.querySelectorAll('[questao]');
-        let allItems = [], prompt = '', counter = 1;
-        questions.forEach((q) => {
-            const subs = getSubQuestions(q);
-            const textArea = getTextArea(q);
-            const hasInputs = subs.some(s => s.type === 'cerroerrado' || s.type === 'multipla' || s.type === 'multipla_multi');
-            if (hasInputs) {
-                subs.forEach((sub, si) => {
-                    if (sub.type === 'cerroerrado') {
-                        prompt += counter + '- Certo ou Errado: ' + sub.text + '\n';
-                        allItems.push({ type: 'cerroerrado', questionEl: q, subIndex: si });
-                    } else if (sub.type === 'multipla') {
-                        prompt += counter + '- Multipla escolha (marque 1): ';
-                        const optLabels = [];
-                        sub.options.forEach(opt => { optLabels.push(String.fromCharCode(65 + sub.options.indexOf(opt)) + ') ' + opt.text); });
-                        prompt += optLabels.join(' | ') + '\n';
-                        allItems.push({ type: 'multipla', questionEl: q, options: sub.options });
-                    } else if (sub.type === 'multipla_multi') {
-                        prompt += counter + '- Multipla escolha (marque TODAS as corretas): ';
-                        const optLabels = [];
-                        sub.options.forEach(opt => { optLabels.push(String.fromCharCode(65 + sub.options.indexOf(opt)) + ') ' + opt.text); });
-                        prompt += optLabels.join(' | ') + '\n';
-                        allItems.push({ type: 'multipla_multi', questionEl: q, options: sub.options });
-                    }
-                    counter++;
-                });
-            } else if (textArea) {
-                const qText = textArea.closest('[questao]').querySelector('.css-rcuo3b .ql-editor');
-                const questionText = qText ? qText.innerText.trim() : '';
-                prompt += counter + '- Texto livre: ' + questionText + '\n';
-                allItems.push({ type: 'texto', questionEl: q, textarea: textArea, questionText: questionText });
-                counter++;
+    function clickProxima() {
+        const buttons = document.querySelectorAll('button');
+        for (const btn of buttons) {
+            if (btn.textContent.includes('Proxima') || btn.textContent.includes('Próxima')) {
+                btn.click();
+                return true;
             }
-        });
-        const fullPrompt = 'Responda cada questao abaixo.\nPara Certo/Errado: responda apenas Certo ou Errado.\nPara Multipla escolha (marque 1): responda APENAS com a letra da alternativa correta (A, B, C, D, E).\nPara Multipla escolha (marque TODAS as corretas): responda com as letras separadas por virgula (ex: A, C, D).\nPara Texto livre: responda como um aluno burro e desatento escreveria. Use erros de portugues, frases curtas, sem muita profundidade, erros de concordancia, palavras erradas, sem virgulas certas, sem acentos as vezes, como se tivesse copiado do google e mal entendeu o assunto. Nao use vocabulario avancado, escreva de forma simples e burra.\nSepare cada resposta com ---\n\n' + prompt;
-        return { fullPrompt, allItems };
+        }
+        return false;
     }
 
-    async function main() {
-        const { fullPrompt, allItems } = scrapeAll();
-        if (allItems.length === 0) { timerEl.remove(); alert('Nenhuma questao encontrada!'); return; }
-        try {
-            const aiAnswer = await sendToAI(fullPrompt);
-            const answers = parseAnswers(aiAnswer, allItems);
-            let marcadas = 0;
-            allItems.forEach((item, i) => {
-                const resposta = answers[i];
-                if (!resposta) return;
-                if (item.type === 'cerroerrado') {
-                    const lowerResposta = resposta.toLowerCase();
-                    if (lowerResposta.includes('certo')) { if (clickCertoErrado(item.questionEl, item.subIndex, 'certo')) marcadas++; }
-                    else if (lowerResposta.includes('errado')) { if (clickCertoErrado(item.questionEl, item.subIndex, 'errado')) marcadas++; }
-                } else if (item.type === 'multipla') {
-                    const val = resposta.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-                    if (val.length > 0 && clickMultipla(item, val)) marcadas++;
-                } else if (item.type === 'multipla_multi') {
-                    const vals = resposta.split(/[,;]/).map(v => v.replace(/[^A-Za-z0-9]/g, '').trim()).filter(v => v.length > 0);
-                    if (vals.length > 0 && clickMultiplaMulti(item, vals)) marcadas++;
-                } else if (item.type === 'texto') {
-                    if (fillTextArea(item.textarea, resposta)) marcadas++;
+    function buildPromptForQuestion(questionEl) {
+        const subs = getSubQuestions(questionEl);
+        const textArea = getTextArea(questionEl);
+        let prompt = '';
+        let items = [];
+
+        const hasInputs = subs.some(s => s.type === 'cerroerrado' || s.type === 'multipla' || s.type === 'multipla_multi');
+        if (hasInputs) {
+            subs.forEach((sub, si) => {
+                if (sub.type === 'cerroerrado') {
+                    prompt += '- Certo ou Errado: ' + sub.text + '\n';
+                    items.push({ type: 'cerroerrado', subIndex: si });
+                } else if (sub.type === 'multipla') {
+                    prompt += '- Multipla escolha (marque 1): ';
+                    const optLabels = [];
+                    sub.options.forEach(opt => { optLabels.push(String.fromCharCode(65 + sub.options.indexOf(opt)) + ') ' + opt.text); });
+                    prompt += optLabels.join(' | ') + '\n';
+                    items.push({ type: 'multipla', options: sub.options });
+                } else if (sub.type === 'multipla_multi') {
+                    prompt += '- Multipla escolha (marque TODAS as corretas): ';
+                    const optLabels = [];
+                    sub.options.forEach(opt => { optLabels.push(String.fromCharCode(65 + sub.options.indexOf(opt)) + ') ' + opt.text); });
+                    prompt += optLabels.join(' | ') + '\n';
+                    items.push({ type: 'multipla_multi', options: sub.options });
                 }
             });
-            timerEl.style.color = '#0f0';
-            timerEl.textContent = 'Pronto! ' + marcadas + ' questoes.';
-            setTimeout(() => timerEl.remove(), 5000);
-        } catch (e) {
-            timerEl.style.color = '#f00';
-            timerEl.textContent = 'Erro!';
-            alert('Erro: ' + e.message);
+        } else if (textArea) {
+            const qText = questionEl.querySelector('.css-rcuo3b .ql-editor');
+            const questionText = qText ? qText.innerText.trim() : '';
+            prompt += '- Texto livre: ' + questionText + '\n';
+            items.push({ type: 'texto', textarea: textArea, questionText: questionText });
+        }
+
+        const fullPrompt = 'Responda cada questao abaixo.\nPara Certo/Errado: responda apenas Certo ou Errado.\nPara Multipla escolha (marque 1): responda APENAS com a letra da alternativa correta (A, B, C, D, E).\nPara Multipla escolha (marque TODAS as corretas): responda com as letras separadas por virgula (ex: A, C, D).\nPara Texto livre: responda como um aluno burro e desatento escreveria. Use erros de portugues, frases curtas, sem muita profundidade, erros de concordancia, palavras erradas, sem virgulas certas, sem acentos as vezes, como se tivesse copiado do google e mal entendeu o assunto. Nao use vocabulario avancado, escreva de forma simples e burra.\nSepare cada resposta com ---\n\n' + prompt;
+        return { fullPrompt, items };
+    }
+
+    function applyAnswers(items, aiAnswer) {
+        const parts = aiAnswer.split('---');
+        let marcadas = 0;
+        items.forEach((item, i) => {
+            if (!parts[i]) return;
+            let resposta = parts[i].trim().replace(/^\d+[\.\-\):]\s*/i, '').trim();
+            if (!resposta) return;
+
+            if (item.type === 'cerroerrado') {
+                const lowerResposta = resposta.toLowerCase();
+                const questionEl = getCurrentQuestion();
+                if (lowerResposta.includes('certo')) { if (clickCertoErrado(questionEl, item.subIndex, 'certo')) marcadas++; }
+                else if (lowerResposta.includes('errado')) { if (clickCertoErrado(questionEl, item.subIndex, 'errado')) marcadas++; }
+            } else if (item.type === 'multipla') {
+                const val = resposta.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+                if (val.length > 0 && clickMultipla(item, val)) marcadas++;
+            } else if (item.type === 'multipla_multi') {
+                const vals = resposta.split(/[,;]/).map(v => v.replace(/[^A-Za-z0-9]/g, '').trim()).filter(v => v.length > 0);
+                if (vals.length > 0 && clickMultiplaMulti(item, vals)) marcadas++;
+            } else if (item.type === 'texto') {
+                if (fillTextArea(item.textarea, resposta)) marcadas++;
+            }
+        });
+        return marcadas;
+    }
+
+    async function processAllQuestions() {
+        let totalMarcadas = 0;
+        let questaoNum = 1;
+
+        while (true) {
+            const questionEl = getCurrentQuestion();
+            if (!questionEl) {
+                timerEl.style.color = '#0f0';
+                timerEl.textContent = 'Fim! ' + totalMarcadas + ' questoes.';
+                setTimeout(() => timerEl.remove(), 5000);
+                return;
+            }
+
+            const { fullPrompt, items } = buildPromptForQuestion(questionEl);
+            if (items.length === 0) {
+                if (!clickProxima()) break;
+                await wait(1000);
+                continue;
+            }
+
+            timerEl.textContent = 'Q' + questaoNum + '...';
+            timerEl.style.color = '#ff0';
+
+            try {
+                const aiAnswer = await sendToAI(fullPrompt);
+                const marcadas = applyAnswers(items, aiAnswer);
+                totalMarcadas += marcadas;
+                questaoNum++;
+            } catch (e) {
+                timerEl.style.color = '#f00';
+                timerEl.textContent = 'Erro Q' + questaoNum;
+                alert('Erro na questao ' + questaoNum + ': ' + e.message);
+            }
+
+            await wait(500);
+
+            if (!clickProxima()) {
+                timerEl.style.color = '#0f0';
+                timerEl.textContent = 'Fim! ' + totalMarcadas + ' questoes.';
+                setTimeout(() => timerEl.remove(), 5000);
+                return;
+            }
+
+            await wait(1500);
         }
     }
 
-    main();
+    processAllQuestions();
 })();

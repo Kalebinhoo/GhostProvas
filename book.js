@@ -3,68 +3,6 @@
     const MODEL = CONFIG.MODEL;
     const TIMER_SECONDS = 15;
 
-    async function generateToken() {
-        const chars = 'ABCDEF';
-        const tokenLength = 8;
-        let token = '';
-        for (let i = 0; i < tokenLength; i++) {
-            token += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return token;
-    }
-
-    async function tryToken(tokenInput, token) {
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-        nativeInputValueSetter.call(tokenInput, token);
-        tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
-        tokenInput.dispatchEvent(new Event('change', { bubbles: true }));
-
-        await wait(200);
-
-        const buttons = document.querySelectorAll('button');
-        for (const btn of buttons) {
-            if (btn.textContent.includes('Iniciar') || btn.textContent.includes('iniciar')) {
-                btn.click();
-                await wait(1500);
-
-                const error = document.querySelector('.MuiAlert-message, .MuiError, [class*="error"], [class*="Error"]');
-                if (!error && !document.querySelector('input[placeholder*="token"]')) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    async function handleTokenDialog() {
-        const tokenInput = document.querySelector('input[placeholder*="token"], input[placeholder*="Token"]');
-        if (!tokenInput) return true;
-
-        timerEl.textContent = 'Gerando token...';
-        timerEl.style.color = '#ff0';
-
-        for (let attempt = 1; attempt <= 50; attempt++) {
-            const token = await generateToken();
-            timerEl.textContent = 'Tentativa ' + attempt + ': ' + token;
-
-            const success = await tryToken(tokenInput, token);
-            if (success) {
-                timerEl.style.color = '#0f0';
-                timerEl.textContent = 'Token: ' + token;
-                await wait(1000);
-                return true;
-            }
-
-            const stillThere = document.querySelector('input[placeholder*="token"]');
-            if (!stillThere) return true;
-
-            await wait(300);
-        }
-
-        alert('Não foi possível gerar um token válido em 50 tentativas.');
-        return false;
-    }
-
     function createTimer() {
         const div = document.createElement('div');
         div.id = 'ghostprovas-timer';
@@ -96,24 +34,57 @@
     timerEl.style.color = '#ff0';
 
     async function sendToAI(text) {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + API_KEY
-            },
-            body: JSON.stringify({
-                model: MODEL,
-                messages: [{
-                    role: 'user',
-                    content: text
-                }],
-                temperature: 0.2,
-                max_tokens: 2000
-            })
-        });
-        const data = await response.json();
-        return data.choices[0].message.content;
+        const urls = [
+            'https://api.groq.com/openai/v1/chat/completions',
+            'https://corsproxy.io/?https://api.groq.com/openai/v1/chat/completions',
+            'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.groq.com/openai/v1/chat/completions')
+        ];
+        let lastError;
+        for (const url of urls) {
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + API_KEY
+                    },
+                    body: JSON.stringify({
+                        model: MODEL,
+                        messages: [{
+                            role: 'user',
+                            content: text
+                        }],
+                        temperature: 0.2,
+                        max_tokens: 2000
+                    })
+                });
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error('HTTP ' + response.status + ': ' + errText.substring(0, 200));
+                }
+                let rawText = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(rawText);
+                } catch(_) {
+                    throw new Error('Resposta não é JSON: ' + rawText.substring(0, 200));
+                }
+                if (data.contents) {
+                    try { data = JSON.parse(data.contents); } catch(_) {}
+                }
+                if (data.error) {
+                    throw new Error('API: ' + (data.error.message || JSON.stringify(data.error).substring(0, 200)));
+                }
+                if (data.choices && data.choices[0] && data.choices[0].message) {
+                    return data.choices[0].message.content;
+                }
+                throw new Error('Resposta inesperada: ' + JSON.stringify(data).substring(0, 200));
+            } catch (e) {
+                lastError = e;
+                continue;
+            }
+        }
+        throw lastError;
     }
 
     function getCurrentQuestion() {
@@ -292,6 +263,7 @@
         const buttons = document.querySelectorAll('button');
         for (const btn of buttons) {
             if (btn.textContent.includes('Proxima') || btn.textContent.includes('Próxima')) {
+                if (btn.disabled || btn.classList.contains('Mui-disabled')) return false;
                 btn.click();
                 return true;
             }
@@ -373,9 +345,6 @@
     }
 
     async function processAllQuestions() {
-        const tokenOk = await handleTokenDialog();
-        if (!tokenOk) return;
-
         let totalMarcadas = 0;
         let questaoNum = 1;
 

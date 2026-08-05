@@ -362,6 +362,16 @@
         return marcadas;
     }
 
+    async function waitQuestionTimer(seconds, questionNum) {
+        for (let i = seconds; i > 0; i--) {
+            const m = Math.floor(i / 60);
+            const s = i % 60;
+            timerEl.textContent = 'Q' + questionNum + ' - ' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+            timerEl.style.color = '#ff0';
+            await wait(1000);
+        }
+    }
+
     async function processAllQuestions() {
         const tokenOk = await handleTokenDialog();
         if (!tokenOk) return;
@@ -385,8 +395,7 @@
                 continue;
             }
 
-            timerEl.textContent = 'Q' + questaoNum + '...';
-            timerEl.style.color = '#ff0';
+            await waitQuestionTimer(TIMER_SECONDS, questaoNum);
 
             try {
                 const aiAnswer = await sendToAI(fullPrompt);

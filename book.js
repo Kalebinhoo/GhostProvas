@@ -3,56 +3,6 @@
     const MODEL = CONFIG.MODEL;
     const TIMER_SECONDS = 15;
 
-    function applyDarkMode() {
-        const invertColors = () => {
-            document.querySelectorAll('*').forEach(el => {
-                const computed = getComputedStyle(el);
-                const bg = computed.backgroundColor;
-                const color = computed.color;
-
-                if (bg === 'rgb(255, 255, 255)' || bg === 'rgb(244, 245, 247)' || bg === 'rgb(250, 250, 250)' || bg.includes('255, 255, 255')) {
-                    el.style.setProperty('background-color', '#1a1a2e', 'important');
-                    el.style.setProperty('background', '#1a1a2e', 'important');
-                }
-                if (color === 'rgb(0, 0, 0)' || color === 'rgb(33, 33, 33)' || color === 'rgba(0, 0, 0, 0.87)') {
-                    el.style.setProperty('color', '#e0e0e0', 'important');
-                }
-                if (computed.borderColor && (computed.borderColor.includes('255, 255, 255') || computed.borderColor.includes('224, 224, 224'))) {
-                    el.style.setProperty('border-color', '#444', 'important');
-                }
-            });
-
-            document.querySelectorAll('iframe').forEach(iframe => {
-                try {
-                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                    if (iframeDoc) {
-                        iframeDoc.querySelectorAll('*').forEach(el => {
-                            const computed = iframeDoc.defaultView.getComputedStyle(el);
-                            const bg = computed.backgroundColor;
-                            if (bg === 'rgb(255, 255, 255)' || bg === 'rgb(244, 245, 247)') {
-                                el.style.setProperty('background-color', '#1a1a2e', 'important');
-                            }
-                            if (computed.color === 'rgb(0, 0, 0)' || computed.color === 'rgba(0, 0, 0, 0.87)') {
-                                el.style.setProperty('color', '#e0e0e0', 'important');
-                            }
-                        });
-                    }
-                } catch(e) {}
-            });
-        };
-
-        invertColors();
-
-        const observer = new MutationObserver(() => {
-            invertColors();
-        });
-        observer.observe(document.body, { childList: true, subtree: true, attributes: true });
-
-        setInterval(invertColors, 500);
-    }
-
-    applyDarkMode();
-
     async function generateToken() {
         const chars = 'ABCDEF';
         const tokenLength = 8;
